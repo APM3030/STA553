@@ -1,0 +1,288 @@
+---
+title: "HW3 FINAL"
+author: "Adam Moffitt"
+date: '2022-03-14'
+output: html_document
+---
+
+```{=html}
+<style type="text/css">
+
+div#TOC li {
+    list-style:none;
+    background-image:none;
+    background-repeat:none;
+    background-position:0;
+}
+h1.title {
+  font-size: 24px;
+  color: DarkRed;
+  text-align: center;
+}
+h4.author { /* Header 4 - and the author and data headers use this too  */
+    font-size: 18px;
+  font-family: "Times New Roman", Times, serif;
+  color: DarkRed;
+  text-align: center;
+}
+h4.date { /* Header 4 - and the author and data headers use this too  */
+  font-size: 18px;
+  font-family: "Times New Roman", Times, serif;
+  color: DarkBlue;
+  text-align: center;
+}
+h1 { /* Header 3 - and the author and data headers use this too  */
+    font-size: 22px;
+    font-family: "Times New Roman", Times, serif;
+    color: darkred;
+    text-align: center;
+}
+h2 { /* Header 3 - and the author and data headers use this too  */
+    font-size: 18px;
+    font-family: "Times New Roman", Times, serif;
+    color: navy;
+    text-align: left;
+}
+
+h3 { /* Header 3 - and the author and data headers use this too  */
+    font-size: 15px;
+    font-family: "Times New Roman", Times, serif;
+    color: navy;
+    text-align: left;
+}
+
+h4 { /* Header 4 - and the author and data headers use this too  */
+    font-size: 18px;
+    font-family: "Times New Roman", Times, serif;
+    color: darkred;
+    text-align: left;
+}
+</style>
+```
+```{r setup, include=FALSE}
+# code chunk specifies whether the R code, warnings, and output 
+# will be included in the output files.
+if (!require("tidyverse")) {
+   install.packages("tidyverse")
+   library(tidyverse)
+}
+if (!require("knitr")) {
+   install.packages("knitr")
+   library(knitr)
+}
+if (!require("cowplot")) {
+   install.packages("cowplot")
+   library(cowplot)
+}
+if (!require("latex2exp")) {
+   install.packages("latex2exp")
+   library(latex2exp)
+}
+if (!require("plotly")) {
+   install.packages("plotly")
+   library(plotly)
+}
+if (!require("gapminder")) {
+   install.packages("gapminder")
+   library(gapminder)
+}
+if (!require("png")) {
+    install.packages("png")             # Install png package
+    library("png")
+}
+if (!require("RCurl")) {
+    install.packages("RCurl")             # Install RCurl package
+    library("RCurl")
+}
+if (!require("colourpicker")) {
+    install.packages("colourpicker")              
+    library("colourpicker")
+}
+if (!require("gganimate")) {
+    install.packages("gganimate")              
+    library("gganimate")
+}
+if (!require("gifski")) {
+    install.packages("gifski")              
+    library("gifski")
+}
+if (!require("magick")) {
+    install.packages("magick")              
+    library("magick")
+}
+if (!require("grDevices")) {
+    install.packages("grDevices")              
+    library("grDevices")
+}
+if (!require("jpeg")) {
+    install.packages("jpeg")              
+    library("jpeg")
+}
+if (!require("showtext")) {
+    install.packages("showtext")              
+    library("showtext")
+}
+
+
+```
+
+```{r}
+#Google FONTS
+library(showtext)
+#Lato for numbers, Assistant for text
+font_add_google("Lato")
+font_add_google("Assistant")
+showtext_auto()
+```
+
+```{r}
+
+# Read in all three datasets.
+
+life_expectancy_years <- read_csv("C:/Users/Adam Moffitt/OneDrive - West Chester University of PA/STA553/Week 5/life_expectancy_years.csv")
+
+income_per_person <- read_csv("C:/Users/Adam Moffitt/OneDrive - West Chester University of PA/STA553/Week 5/income_per_person.csv")
+
+countries_total <- read_csv("C:/Users/Adam Moffitt/OneDrive - West Chester University of PA/STA553/Week 5/countries_total.csv")
+
+population <- read_csv("C:/Users/Adam Moffitt/OneDrive - West Chester University of PA/STA553/Week 5/population_total.csv")
+```
+
+```{r}
+
+# Manipulated the data to write a final data set
+
+lifeexpectancylong <- life_expectancy_years %>%
+  gather(key = "Year",       # the column names of the wide table
+         value = "LifeExp",  # the numerical values of the table
+         - geo,          # drop geo variable: its value will not be gathered (stacked)!
+         na.rm = TRUE
+         )   
+incomeperpersonlong <- income_per_person %>%
+  gather(key = "Year",       # the column names of the wide table
+         value = "Income",  # the numerical values of the table
+         - geo,          # drop geo variable: its value will not be gathered (stacked)!
+         na.rm = TRUE
+         )       # removing records with missing values ?
+# combine the two tables together
+
+populationlong <- population %>%
+  gather(key = "Year",       # the column names of the wide table
+         value = "Population",  # the numerical values of the table
+         - geo,          # drop geo variable: its value will not be gathered (stacked)!
+         na.rm = TRUE
+         )       
+
+LifeExpIncom <-left_join(incomeperpersonlong , lifeexpectancylong, by = c("geo" , "Year")) 
+LifeExpIncom2 <- left_join(LifeExpIncom , populationlong , by = c("geo","Year"))
+
+
+
+## Subregions data set
+subregions <- countries_total %>% 
+    select(name , region)
+
+# Add sub regions to create final data set.
+LifeExpIncomFinal <- LifeExpIncom2 %>% left_join(subregions, by = c("geo" = "name"))
+
+
+
+
+```
+
+```{r echo=FALSE}
+# Noticed missing region values.  Went ahead and corrected those.
+
+LifeExpIncomFinal <- LifeExpIncomFinal %>%  mutate(region = ifelse(geo == "Bolivia" , "Americas" , ifelse(geo == "Brunei" , "Asia" , 
+ifelse(geo == "Cape Verde" , "Africa" ,
+       ifelse(geo == "Congo, Rep." , "Africa" ,
+              ifelse(geo == "Kazakhstan" , "Asia" ,
+               ifelse(geo == "Macedonia, FYR" , "Europe" ,  
+                      ifelse(geo == "Micronesia, Fed. Sts." , "Oceania" ,
+                            ifelse(geo == "St. Kitts and Nevis" , "Americas" ,
+                                   ifelse(geo == "Swaziland" , "Africa" ,
+                                          ifelse(geo == "Turkmenistan" , "Asia" ,
+                                                 ifelse(geo == "Vietnam" , "Asia" ,
+                                   LifeExpIncomFinal$region))))))))))))
+write.csv(LifeExpIncomFinal, file = "C:/Users/Adam Moffitt/OneDrive - West Chester University of PA/STA553/Week 5/LifeExpIncomFinal.csv")
+```
+
+```{r}
+#Location of Final dataset on Github
+LifeExpIncomFinal <- "https://raw.githubusercontent.com/APM3030/STA553/main/homework3/LifeExpIncomFinal.csv"
+LifeExpIncomFinal <- read_csv(LifeExpIncomFinal)
+#convert year to integer
+LifeExpIncomFinal <- mutate(LifeExpIncomFinal, Year = as.integer(LifeExpIncomFinal$Year))
+
+```
+
+```{r , warning=FALSE}
+
+    ggplot(LifeExpIncomFinal, aes(Income, LifeExp, 
+                  size = Population, colour = region)) +
+    geom_point(alpha = 0.5) +
+        guides(size = FALSE)+
+    scale_size(range = c(2, 12)) +
+           scale_x_log10(labels = scales::dollar) +
+    labs(title = 'Relationship Between Life Expectancy and GDP' ,
+    subtitle = 'Year: {frame_time}', 
+                    x = 'GDP Per Capita',
+                    y = 'Life Expectancy in Years',
+                    colour = 'Region:')+
+    theme_minimal() +
+    theme( 
+        axis.line = element_line(size = .7, linetype = "solid") ,
+        text=element_text(size = 18 , family="Assistant"),
+        axis.title.y = element_text(vjust = -2),
+        axis.title.x = element_text(vjust = 3),
+        plot.title = element_text(face = "bold" , size = 26 , vjust = -3.5),
+        plot.subtitle = element_text(vjust = -1),
+        axis.text.x = element_text(family = "Lato" , size = 16),
+        axis.text.y = element_text(family = "Lato" , size = 16),
+        legend.title = element_text(face = "bold")
+        ) +
+    transition_time(Year)
+  
+
+```
+
+```{r}
+#subet data for year 2015
+leifinal2015 <- LifeExpIncomFinal %>% filter(Year == 2015)
+#plot the data 
+#consider using ggplotly
+plot_ly(
+  data = leifinal2015,
+  x = ~Income ,  # Horizontal axis 
+  y = ~LifeExp ,   # Vertical axis   # must be a numeric factor
+  text = ~geo,   #location in the hover text
+hovertemplate = paste(
+      "%{yaxis.title.text}: %{y:}<br>",
+
+      "%{xaxis.title.text}: %{x:}<br>",
+
+      "Population: %{marker.size:}",
+      
+      "<extra></extra>"),
+
+  color = ~factor(geo),
+  alpha  = 0.5 ,
+  size = ~Population,
+  type = "scatter",
+  mode = "markers"
+   ) %>%
+    layout(showlegend = FALSE, 
+            title =list(text = "Relationship Between Life Expectancy and GDP", 
+                          font = list(family = "Arial",    
+                                        size = 18,
+                                      face = "bold")),
+           xaxis = list( 
+                    title=list(text = 'GDP Per Capita')),
+           yaxis = list (
+                    title = list(text = 'Life Expectancy')
+           )
+
+
+    )
+```
+
